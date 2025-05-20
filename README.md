@@ -20,7 +20,7 @@
 
 
 <p align="center">
-  <img src="./assets/teaser.png" alt="Text-to-Image Results" width="500">
+  <img src="./assets/teaser.png" alt="Text-to-Image Results" width="800">
 </p>
 <p align="center">A scalable pipeline for composing high-quality synthetic object segments into richly annotated images for object detection, instance segmentation, and visual grounding.</p>
 
@@ -30,56 +30,43 @@
 
 
 <p align="center">
-  <img src="./assets/pipeline.png" alt="Text-to-Image Results" width="500">
+  <img src="./assets/pipeline.png" alt="Text-to-Image Results" width="800">
 </p>
 
-We propose a scalable **Synthetic Object Segments (SOS)** pipeline that composes high-quality object segments into diverse scene backgrounds. The pipeline consists of three main stages:  
-1. **Segment Selection & Preprocessing**  
-   - Extract object masks from a large collection of high-resolution images.  
-   - Filter segments by size, aspect ratio, and visual quality.  
-   - Normalize masks and store per-object metadata (category, bounding box, alpha matte).
+1. **Object Segments Generation**  
+   – Prompt a large diffusion model (FLUX-1) to render single-object images on a plain background.  
+   – Extract clean masks with a segmentation model (DIS).  
+   – Build a library of 20 M segments over both frequent (LVIS/COCO) and general categories.
 
-2. **Relighting & Color Harmonization**  
-   - For each segment, estimate its illumination parameters (ambient, directional) using a small neural network.  
-   - Adjust segment colors and shadows to match target scene statistics (mean RGB, contrast, color temperature).  
-   - Optionally apply data-driven color augmentations to increase diversity.
+2. **Object Selection & Layout Generation**  
+   – Sample 5–20 segments per image, matching real-photo object-count distributions.  
+   – Balanced‐category sampling to avoid head-class bias.  
+   – Assign each segment to small/medium/large bins (40%/35%/25%) and enforce limited overlap.
 
-3. **Layout & Blending**  
-   - **Layout**: sample plausible object positions based on semantic maps (e.g., “sky” vs. “ground” regions) and avoid occlusion conflicts.  
-   - **Blending**: composite each relit segment into the background using a two-stage approach:  
-     1. ** alpha blending** with learned edge feathering to smooth mask boundaries.  
+3. **Relighting & Blending**  
+   – **Global Relighting**: Apply IC-Light diffusion to harmonize illumination and suppress hard-edge artifacts.  
+   – **Mask-Area-Weighted Blending**: Re-blend each segment with a learned weight ωᵢ ∈ [0,1] (higher for small objects) to preserve fine details and color fidelity.
+   **Blending Comparison on LVIS-Mini**  
+   - **Naive Paste**: direct alpha paste (hard edges, color mismatch)  
+   - **IC-Light Only**: global relighting → AP = 36.3  
+   - **IC-Light + Blending**: + mask-area-weighted re-blend → AP = 38.6 (**+2.3**)
+
+4. **Ground Truth Generation**  
+   – Compute final masks by subtracting occlusions from later-placed segments.  
+   – Extract tight bounding boxes from each final mask.  
+   – Generate 9+ referring expressions per image (attribute-, spatial-, and mixed-type) by prompting a language model with segment metadata.
 
 <p align="center">
-  <img src="./assets/comparison.png" alt="Text-to-Image Results" width="500">
+     <img src="./assets/comparison.png" alt="Relighting and Blending Comparison" width="800">
 </p>
 
-### Blending Comparison
-
-We compare three blending strategies on held-out validation images:
-
-| Method               | Boundary Artifacts | Color Consistency | Gradient Seamlessness |
-|----------------------|--------------------|-------------------|-----------------------|
-| No Blending          | ✗ high jaggedness  | ✗ color shifts    | ✗ visible seams       |
-| Naive Alpha Blending | ✗ soft edges       | ✓ local match     | ✗ halo effects        |
-| **SOS Blending**     | ✓ smooth transitions| ✓ global match    | ✓ seamless gradients  |
-
-<p align="center">
-  <img src="./assets/comparison.png" alt="Blending Comparison" width="500">
-</p>
-
-1. **No Blending**  
-   Direct paste leads to hard edges and mismatched lighting.  
-2. **Naive Alpha Blending**  
-   Softens edges but often leaves color halos around objects.  
-3. **SOS Blending**  
-   Our two-stage approach eliminates boundary artifacts and enforces gradient consistency, producing photorealistic composites.
 
 # Results
 
 ## Task 1: Open-Vocabulary Object Detection
 
 <p align="center">
-  <img src="./assets/ovd.png" alt="Text-to-Image Results" width="500">
+  <img src="./assets/ovd.png" alt="Text-to-Image Results" width="800">
 </p>
 
 - **Small amount of SOS efficiently brings strong gain.**  
@@ -94,7 +81,7 @@ We compare three blending strategies on held-out validation images:
 ## Task 2: Visual Grounding
 
 <p align="center">
-  <img src="./assets/ref.png" alt="Text-to-Image Results" width="500">
+  <img src="./assets/ref.png" alt="Text-to-Image Results" width="800">
 </p>
 
 - **Existing large detection and grounding datasets yield only marginal improvements.**  
@@ -106,7 +93,7 @@ We compare three blending strategies on held-out validation images:
 ## Task 3: Instance Segmentation
 
 <p align="center">
-  <img src="./assets/results.png" alt="Text-to-Image Results" width="500">
+  <img src="./assets/results.png" alt="Text-to-Image Results" width="800">
 </p>
 
 
@@ -120,7 +107,7 @@ We compare three blending strategies on held-out validation images:
 ## Task 5: Intra-Class Referring Expression
 
 <p align="center">
-  <img src="./assets/intra-class.png" alt="Text-to-Image Results" width="500">
+  <img src="./assets/intra-class.png" alt="Text-to-Image Results" width="800">
 </p>
 
 - **Targeted SOS data fixes intra-class shortcuts.**  

@@ -495,7 +495,6 @@ def main():
             for entry in chunks:
                 out_f.write(json.dumps(entry) + '\n')
 
-    # print(f"Job {args.job_index} complete: wrote {len(results)} records to {output_path}")
 
     # Upload result back to GCS if requested
     if is_gcs_output:

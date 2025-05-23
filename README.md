@@ -26,9 +26,91 @@
 
 # Installation
 
+*Notice*: We provide only minimal guidance for the core parts of the codebase for: image composing, relighting and blending, and referring expression generation. The full documentation (with an accompanying arXiv paper) covering additional tasks and case studies will be released soon.
+
+## Environment Setup
+Follow the steps below to set up the environment and use the repository:
+```bash
+# Clone the repository
+git clone https://github.com/weikaih04/SOS
+cd ./SOS
+
+# Create and activate a Python virtual environment:
+conda create -n sos python==3.10
+conda activate sos
+
+# Install the required dependencies for composing images with synthetic object segments:
+pip install -r requirements.txt
+
+# If you want to perform relighting and blending:
+conda create -n sos-relight python==3.10
+conda activate sos-relight
+pip install -r requirements_relight_and_blend.txt
+
+# If you want to generating referring expression:
+conda create -n sos-ref python==3.10
+create activate sos-ref
+pip install -r requirements_referring_expression_generation.txt
+```
+
+
+## Data Preparation
+
+### For object segments dataset:
+You can download the all the object segments dataset from: https://huggingface.co/collections/weikaih/sos-synthetic-object-segments-improves-detection-segmentat-682679751d20faa20800033c
+
+
+### For background dataset:
+If you want to relight images and didn't direclty pasting object segments into the background, just use the a random image as the background and set the `hasBackground` to false in the `generate_batch.py`
+You can download the BG-20K from this repo: https://github.com/JizhiziLi/GFM.git
+
+
+## Composing synthetic images:
+We provide the script to composing images with synthetic segments:
+If you want to generate the images for relightening and blending that only contains the foreground object segments for the religting and blending later
+```
+python scripts/generate_with_batch.py \
+    --num_processes 100 # depands on your cpus \
+    --total_images 100000 \
+    --filtering_setting filter_0 \
+    --image_save_path "/output/dastaset_name/train" \
+    --mask_save_path "/output/dastaset_name/panoptic_train" \
+    --annotation_path "/output/dastaset_name/annotations" \
+    --json_save_path "/output/dastaset_name/annotations/panoptic_train.json" 
+```
+
+If you want to generate the images that direclty paste the object onto the background, uncommend the `with bg process_image_worker` function in the `scripts/generate_with_batch.py` 
+
+
+## Relighting and Blending
+You can relight and blend the images with: `relighting_and_blending/inference.py` 
+
+Currently it support google cloud storage access and local file system, 
+you can run it with:
+```
+python relighting_and_blending/inference.py \
+  --dataset_path "$DATASET_PATH" \
+  --output_data_path "$OUTPUT_DATA_PATH" \
+  --num_splits "$NUM_SPLITS" \
+  --split "$SPLIT" \
+  --index_json_path "" \
+  --illuminate_prompts_path "$ILLUMINATE_PROMPTS_PATH" \
+  --record_path "$RECORD_PATH"
+```
+
+## Referring Expression Generation
+You can generate referring expressions with: `referring_expression_generation/inference.py` 
+
+
+Currently it support google cloud storage access and local file system, 
+you can run it with:
+```
+python inference.py "${TOTAL_JOBS}" "${JOB_INDEX}" "${INPUT_FILE}" "${OUTPUT_DIR}"
+```
+
+
+
 # Method
-
-
 <p align="center">
   <img src="./assets/pipeline.png" alt="Text-to-Image Results" width="800">
 </p>

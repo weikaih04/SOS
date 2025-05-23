@@ -71,7 +71,7 @@ class NumpyEncoder(json.JSONEncoder):
             return int(obj)
         return super(NumpyEncoder, self).default(obj)
 
-
+# without bg, for relightening and blending
 def initialize_global_categories(annotation_path, filtering_setting, global_data_manager):
     """
     Initializes the global categories from the DataManager.
@@ -119,7 +119,7 @@ def process_image_worker(start_idx, end_idx, worker_seed, filtering_setting, que
             continue
 
         obj_nums = np.random.randint(5, 20)
-        data = rss.sampling_metadata(1024, 1024, obj_nums, hasBackground=True, dataAugmentation=False)
+        data = rss.sampling_metadata(1024, 1024, obj_nums, hasBackground=False, dataAugmentation=False)
         res = rss.generate_with_unified_format(data, containRGBA=True, containCategory=True, containSmallObjectMask=False, resize_mode="fit")
         
         # Save image and mask.
@@ -137,6 +137,54 @@ def process_image_worker(start_idx, end_idx, worker_seed, filtering_setting, que
             json.dump(annotation, f, cls=NumpyEncoder, indent=4)
 
         queue.put(1)
+
+# with bg
+# def process_image_worker(start_idx, end_idx, worker_seed, filtering_setting, queue, image_save_path, mask_save_path, annotation_path, data_manager):
+#     """
+#     Worker function that processes a batch of images with a unique seed.
+#     For each image, the corresponding annotation is saved as a separate JSON file.
+#     """
+#     random.seed(worker_seed)
+#     np.random.seed(worker_seed)
+
+#     rss = FineGrainedBoundingBoxSegmentationSynthesizer(data_manager, "./", random_seed=worker_seed)
+
+#     # Create a subfolder for separate annotations
+#     separate_annotation_path = os.path.join(annotation_path, "separate_annotations")
+#     if not (os.path.exists(separate_annotation_path) and os.path.isdir(separate_annotation_path)):
+#         os.makedirs(separate_annotation_path, exist_ok=True)
+
+#     for i in range(start_idx, end_idx):
+#         image_name = f"{i}.jpg"
+#         mask_name = f"{i}.png"
+#         image_path_full = os.path.join(image_save_path, image_name)
+#         mask_path_full = os.path.join(mask_save_path, mask_name)
+#         separate_annot_file = os.path.join(separate_annotation_path, f"{i}.json")
+
+#         # Skip processing if image, mask, and annotation all exist.
+#         if os.path.exists(image_path_full) and os.path.exists(mask_path_full) and os.path.exists(separate_annot_file):
+#             queue.put(1)
+#             continue
+
+#         obj_nums = np.random.randint(5, 20)
+#         data = rss.sampling_metadata(1024, 1024, obj_nums, hasBackground=True, dataAugmentation=False)
+#         res = rss.generate_with_unified_format(data, containRGBA=True, containCategory=True, containSmallObjectMask=False, resize_mode="fit")
+        
+#         # Save image and mask.
+#         res['image'].save(image_path_full)
+#         Image.fromarray(res['coco_mask']).save(mask_path_full)
+
+#         # Build annotation for this image.
+#         annotation = {
+#             "segments_info": res["segments_info"],
+#             "file_name": mask_name,
+#             "image_id": i,
+#         }
+#         # Save the annotation as a separate JSON file.
+#         with open(separate_annot_file, "w") as f:
+#             json.dump(annotation, f, cls=NumpyEncoder, indent=4)
+
+#         queue.put(1)
 
 
 def listener(queue, total):
@@ -322,44 +370,47 @@ def main():
 
 if __name__ == "__main__":
 
-    # using GC split data
+    # using FC split data
     available_object_datasets = {
         "Synthetic": SyntheticDataset(
-            dataset_path="/home/jieyuz/input_new/weikaih/synthetic_segments_segmented/output_ovd", 
-            synthetic_annotation_path="/home/jieyuz/ovd_final_shortened_formatted.json",
-            dataset_name="Synthetic_test",
+            dataset_path="/fc_10m", 
+            synthetic_annotation_path="/fc_10m/gc_object_segments_metadata.json", 
+            dataset_name="Synthetic",
             cache_path="./metadata_ovd_cache"
         ),
     }
-    # using FC split data
+
+    # using GC split data
     # available_object_datasets = {
     #     "Synthetic": SyntheticDataset(
-    #         dataset_path="/home/jieyuz/input_new/weikaih/synthetic_segments_segmented/output_ovd", 
-    #         synthetic_annotation_path="/home/jieyuz/ovd_final_shortened_formatted.json",
-    #         dataset_name="Synthetic_test",
+    #         dataset_path="/gc_10m", 
+    #         synthetic_annotation_path="/gc_10m/gc_object_segments_metadata.json", 
+    #         dataset_name="Synthetic",
     #         cache_path="./metadata_ovd_cache"
     #     ),
     # }
-    # mixing data from different source
-    available_object_datasets = {
-        "Synthetic_fc": SyntheticDataset(
-            dataset_path="/home/jieyuz/input_new/weikaih/synthetic_segments_segmented/output_ovd", 
-            synthetic_annotation_path="/home/jieyuz/ovd_final_shortened_formatted.json",
-            dataset_name="Synthetic_fc",
-            cache_path="./metadata_fc_cache"
-        ),
-        "Synthetic_gc": SyntheticDataset(
-            dataset_path="/home/jieyuz/input_new/weikaih/synthetic_segments_segmented/output_ovd", 
-            synthetic_annotation_path="/home/jieyuz/ovd_final_shortened_formatted.json",
-            dataset_name="Synthetic_gc",
-            cache_path="./metadata_gc_cache"
-        ),
-    }
 
-    # Default is not using background, if you want to use background in BG20k, please setup the dataset path
+    # mixing data from different source
+    # available_object_datasets = {
+    #     "Synthetic_fc": SyntheticDataset(
+    #         dataset_path="/fc_10m", 
+    #         synthetic_annotation_path="/fc_10m/gc_object_segments_metadata.json",
+    #         dataset_name="Synthetic_fc",
+    #         cache_path="./metadata_fc_cache"
+    #     ),
+    #     "Synthetic_gc": SyntheticDataset(
+    #         dataset_path="/gc_10m", 
+    #         synthetic_annotation_path="/gc_10m/gc_object_segments_metadata.json",
+    #         dataset_name="Synthetic_gc",
+    #         cache_path="./metadata_gc_cache"
+    #     ),
+    # }
+
+    # By default, this loads from a placeholder dataset containing only a single image using `background`. 
+    # To use `background` in BG20k, please set up the dataset path.
     available_background_datasets = {
         "BG20k": BG20KDataset("datasets/one_image_bg")
-    #     "BG20k": BG20KDataset("/your/path/to/bg")
+    #     "BG20k": BG20KDataset("/your/path/to/bg20k_dataset")
 
     }
 

@@ -54,16 +54,17 @@ pip install -r requirements_referring_expression_generation.txt
 ```
 
 
-## Data Preparation
+# Data Preparation
 
-### For object segments dataset:
+## For object segments dataset:
 You can download the all the object segments dataset from: https://huggingface.co/collections/weikaih/sos-synthetic-object-segments-improves-detection-segmentat-682679751d20faa20800033c
 
 
-### For background dataset:
+## For background dataset:
 If you want to relight images and didn't direclty pasting object segments into the background, just use the a random image as the background and set the `hasBackground` to false in the `generate_batch.py`
 You can download the BG-20K from this repo: https://github.com/JizhiziLi/GFM.git
 
+# Usage
 
 ## Composing synthetic images:
 We provide the script to composing images with synthetic segments:
